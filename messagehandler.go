@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,6 +23,7 @@ func (instance *story) addWord(word string) (int, addRespose) {
 		return instance.setTitle(word)
 	} else if len(strings.Fields(instance.Title)) <= 1 {
 		instance.Title = instance.Title + " " + word
+		instance.DBPtr.UpdateTitle(*instance)
 		return http.StatusOK, addRespose{Id: instance.Id,
 			Title: instance.Title}
 	} else {
@@ -63,6 +65,7 @@ func (instance *story) addWord(word string) (int, addRespose) {
 			"total number of paragraphs":       len(instance.Paragraphs),
 		}).Info("server status")
 
+		instance.DBPtr.UpdateTime(instance.Id)
 		return http.StatusOK, addRespose{Id: instance.Id,
 			Title: instance.Title, CurrentSentance: instance.CurrentSentance}
 	}
@@ -70,12 +73,17 @@ func (instance *story) addWord(word string) (int, addRespose) {
 }
 
 func (instance *story) setTitle(word string) (int, addRespose) {
+	nxtID, err := instance.DBPtr.GetNextId()
+	if err != nil {
+		panic(errors.Wrap(err, "something failed"))
+	}
 	instance.Title = word
-	instance.Id++
+	instance.Id = nxtID
 	instance.CurrentParagraph = nil
 	instance.CurrentSentance = ""
 	instance.Paragraphs = nil
 	log.Info("Creating new story!")
+	instance.DBPtr.CreateStory(*instance)
 	return http.StatusCreated, addRespose{Id: instance.Id,
 		Title: instance.Title}
 }

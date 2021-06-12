@@ -93,8 +93,6 @@ func (instance *datastore) insertTest() {
 	insertStmt := `insert into "storyboard" ("id", "title") values ($1, $2)`
 	_, e := instance.psqlDB.Exec(insertStmt, 3, title)
 	//_, e := instance.psqlDB.Exec(insertStmt, instance.id, title)
-
-	instance.id++
 	check(e)
 }
 
@@ -102,5 +100,43 @@ func (instance *datastore) CreateStory(data story) {
 	if instance.psqlDB == nil {
 		instance.connectToDB()
 	}
+	curTime := (time.Now().UnixNano() / int64(time.Millisecond))
+	insertStmt := `insert into "storyboard" ("id", "title", "created_at", "updated_at") values ($1, $2, $3, $4)`
+	_, e := instance.psqlDB.Exec(insertStmt, data.Id, data.Title, curTime, curTime)
+	check(e)
+}
 
+func (instance *datastore) UpdateTitle(data story) {
+	if instance.psqlDB == nil {
+		instance.connectToDB()
+	}
+	curTime := (time.Now().UnixNano() / int64(time.Millisecond))
+	insertStmt := `update storyboard set title = $1, updated_at = $2 where id = $3`
+	_, e := instance.psqlDB.Exec(insertStmt, data.Title, curTime, data.Id)
+	check(e)
+}
+
+func (instance *datastore) GetNextId() (int64, error) {
+	if instance.psqlDB == nil {
+		instance.connectToDB()
+	}
+	rows, e := instance.psqlDB.Query(`SELECT coalesce(MAX(id), 0) AS id FROM storyboard`)
+	check(e)
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		err := rows.Scan(&id)
+		check(err)
+		rv := id + 1
+		return rv, nil
+	}
+	return 1, fmt.Errorf("db error")
+}
+
+func (instance *datastore) UpdateTime(id int64) {
+	curTime := (time.Now().UnixNano() / int64(time.Millisecond))
+	updateStmt := `update storyboard set updated_at = $1 where id = $2`
+	_, e := instance.psqlDB.Exec(updateStmt, curTime, id)
+	check(e)
+	fmt.Println("Time updated")
 }

@@ -12,7 +12,8 @@ import (
 
 func setupRoutes(db datastore) {
 	app := iris.New()
-	cur_story := story{Id: 0}
+
+	cur_story := story{Id: 0, DBPtr: db}
 	crs := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"}, // allows everything, use that to change the hosts.
 		AllowedMethods:   []string{"HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"},

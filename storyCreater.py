@@ -18,10 +18,11 @@ for item in content:
     ww = item.split()
     for i in ww:
         print(i)
-        
+
         mydict["word"] = i
-        response = requests.post(url=url, data=json.dumps(mydict), headers=headers)
-        print("time elapse ",response.elapsed.microseconds)
+        response = requests.post(
+            url=url, data=json.dumps(mydict), headers=headers)
+        print("time elapse ", response.elapsed.microseconds)
         print("Status code: ", response.status_code)
         print("Printing Entire Post Request")
         print(response.json())

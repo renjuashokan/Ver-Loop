@@ -22,6 +22,7 @@ type story struct {
 	CurrentParagraph  []string
 	Paragraphs        [][]string
 	SentanceWordCount int16
+	DBPtr             datastore
 }
 
 type incomingMsg struct {
@@ -32,7 +33,6 @@ type datastore struct {
 	HTTPClient http.Client
 	config     readConfig
 	psqlDB     *sql.DB
-	id         int64
 }
 
 type readConfig struct {
