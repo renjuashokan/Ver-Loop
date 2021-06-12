@@ -11,3 +11,6 @@ Database:
   Port: "5432"
   IP: "127.0.0.1"
   Name: "postgres"
+
+Verloop:
+  Port: "9090"

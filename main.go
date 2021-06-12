@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	fmt.Println("hello world")
-	db := datastore{}
+	log.SetFormatter(&log.TextFormatter{TimestampFormat: "2006-01-02 15:04:05", FullTimestamp: true})
+	log.Info("Starting!")
+	db := datastore{id: 1}
 	db.initDatastore()
-	db.insertTest()
+	setupRoutes(db)
 }

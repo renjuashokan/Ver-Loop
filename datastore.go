@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -13,20 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
-
-type datastore struct {
-	HTTPClient http.Client
-	config     readConfig
-	psqlDB     *sql.DB
-}
-
-type readConfig struct {
-	ConfigFile       string
-	LogLevel         string
-	DeploymentMode   string
-	AllowCrossOrigin bool
-	CharSet          string
-}
 
 func (instance *datastore) initDatastore() {
 	fmt.Println("initiating datastore")
@@ -91,10 +76,6 @@ func (instance *datastore) connectToDB() {
 	}
 
 	log.Info("Successfully connected!")
-	queryResp, err := instance.psqlDB.Query(`list tables for all`)
-	if queryResp != nil {
-		fmt.Println("got resp")
-	}
 }
 
 func check(e error) {
@@ -105,10 +86,21 @@ func check(e error) {
 }
 
 func (instance *datastore) insertTest() {
-	for instance.psqlDB == nil {
+	if instance.psqlDB == nil {
 		instance.connectToDB()
 	}
-	insertStmt := `insert into "storyboard"("id", "title") values('1', 'renjurenju')`
-	_, e := instance.psqlDB.Exec(insertStmt)
+	title := "new title"
+	insertStmt := `insert into "storyboard" ("id", "title") values ($1, $2)`
+	_, e := instance.psqlDB.Exec(insertStmt, 3, title)
+	//_, e := instance.psqlDB.Exec(insertStmt, instance.id, title)
+
+	instance.id++
 	check(e)
+}
+
+func (instance *datastore) CreateStory(data story) {
+	if instance.psqlDB == nil {
+		instance.connectToDB()
+	}
+
 }
