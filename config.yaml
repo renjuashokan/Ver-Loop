@@ -1,0 +1,13 @@
+ConfigFile:          "config.yml" 
+LogLevel:            "info"           
+DeploymentMode:      "dev"           
+AllowCrossOrigin:     true          
+CharSet:             "UTF-8"
+
+
+Database:
+  UserID: "postgres"
+  Passwd: "password1"
+  Port: "5432"
+  IP: "127.0.0.1"
+  Name: "postgres"
