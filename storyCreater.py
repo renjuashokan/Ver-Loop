@@ -26,7 +26,7 @@ for item in content:
         print("Status code: ", response.status_code)
         print("Printing Entire Post Request")
         print(response.json())
-        time.sleep(0.1)
+        time.sleep(0.5)
         cnt = cnt + 1
 
 print("total number of sents", cnt)

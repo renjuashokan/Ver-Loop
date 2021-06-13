@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -138,5 +140,64 @@ func (instance *datastore) UpdateTime(id int64) {
 	updateStmt := `update storyboard set updated_at = $1 where id = $2`
 	_, e := instance.psqlDB.Exec(updateStmt, curTime, id)
 	check(e)
-	fmt.Println("Time updated")
+}
+
+func (instance *datastore) UpdateBody(data story) {
+	b, _ := json.Marshal(data.Body)
+	curTime := (time.Now().UnixNano() / int64(time.Millisecond))
+	updateStmt := `update storyboard set updated_at = $1, body = $2 where id = $3`
+	_, e := instance.psqlDB.Exec(updateStmt, curTime, b, data.Id)
+	check(e)
+	log.Debug("Updated body", string(b))
+}
+
+func (instance *datastore) CheckStoryExist(id int64) bool {
+	if instance.psqlDB == nil {
+		instance.connectToDB()
+	}
+	queryStmnt := `select COUNT(1) from storyboard where id=$1`
+	rows, e := instance.psqlDB.Query(queryStmnt, id)
+	check(e)
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		err := rows.Scan(&id)
+		check(err)
+		rv := id == 1
+		return rv
+	}
+	return false
+}
+
+func (instance *datastore) GetStoryById(Id int64) (int, RespSingleStory) {
+	if instance.psqlDB == nil {
+		instance.connectToDB()
+	}
+	queryStmnt := `SELECT id, title, created_at, updated_at,body FROM public.storyboard where id = $1`
+	rows, e := instance.psqlDB.Query(queryStmnt, Id)
+	defer rows.Close()
+	check(e)
+	var output RespSingleStory
+	for rows.Next() {
+		var id int64
+		var title sql.NullString
+		var created_at, updated_at int64
+		var body sql.NullString
+		err := rows.Scan(&id, &title, &created_at, &updated_at, &body)
+		output.Id = id
+		if title.Valid {
+			output.Title = title.String
+		}
+		output.CreatedTime = time.Unix(0, created_at*int64(time.Millisecond)).String()
+		output.UpdateTime = time.Unix(0, updated_at*int64(time.Millisecond)).String()
+		if body.Valid {
+			output.Paragraphs = body.String
+		}
+
+		check(err)
+
+		return http.StatusOK, output
+	}
+
+	return http.StatusUnprocessableEntity, output
 }

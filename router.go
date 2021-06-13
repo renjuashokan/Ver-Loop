@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/iris-contrib/middleware/cors"
 	"github.com/kataras/iris/v12"
@@ -40,6 +41,31 @@ func setupRoutes(db datastore) {
 			ctx.StatusCode(status)
 			ctx.JSON(resp)
 		})
+
+		verl.Get("/stories/{id}", func(ctx iris.Context) {
+			fmt.Println("get 1111 whole stories")
+			id := ctx.Params().Get("id")
+			fmt.Println(id)
+			i, err := strconv.ParseInt(id, 10, 64)
+			if err != nil {
+				panic(err)
+			}
+
+			if !db.CheckStoryExist(i) {
+				log.Info("story not found with id = ", i)
+				ctx.StatusCode(http.StatusNotFound)
+				return
+			}
+			status, resp := db.GetStoryById(i)
+			ctx.StatusCode(status)
+			ctx.JSON(resp)
+		})
+
+		verl.Get("/stories/", func(ctx iris.Context) {
+			fmt.Println("get whole stories")
+
+		})
+
 	}
 	port := fmt.Sprintf(":%s", viper.GetString("Verloop.Port"))
 	app.Run(iris.Addr(port), iris.WithCharset(viper.GetString("CharSet")))

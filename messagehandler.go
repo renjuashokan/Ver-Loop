@@ -26,50 +26,83 @@ func (instance *story) addWord(word string) (int, addRespose) {
 		instance.DBPtr.UpdateTitle(*instance)
 		return http.StatusOK, addRespose{Id: instance.Id,
 			Title: instance.Title}
-	} else {
-		// title is set, check for body
-
-		if len(instance.CurrentSentance) == 0 {
-			instance.SentanceWordCount = 1
-			instance.CurrentSentance = word
-		} else if instance.SentanceWordCount < 15 {
-			instance.CurrentSentance = instance.CurrentSentance + " " + word
-			instance.SentanceWordCount++
-		} else if instance.SentanceWordCount == 15 {
-
-			// max length reached for current sentance.
-			// check we can add to current paragraph
-			if len(instance.CurrentParagraph) < 10 {
-				instance.CurrentParagraph = append(instance.CurrentParagraph, instance.CurrentSentance)
-				log.Info("adding to current paragraph")
-
-			} else if len(instance.CurrentParagraph) == 10 {
-				// check we can add
-				if len(instance.Paragraphs) < 7 {
-					instance.Paragraphs = append(instance.Paragraphs, instance.CurrentParagraph)
-					instance.CurrentParagraph = nil
-					log.Debug("Adding to paragraphs")
-				} else if len(instance.Paragraphs) == 7 {
-					log.Info("Creating new story!!")
-					return instance.setTitle(word)
-				}
-			}
-
-			instance.CurrentSentance = word
-			instance.SentanceWordCount = 1
-		}
-		log.WithFields(log.Fields{
-			"id":                               instance.Id,
-			"current sentace word count":       instance.SentanceWordCount,
-			"current paragraph sentence count": len(instance.CurrentParagraph),
-			"total number of paragraphs":       len(instance.Paragraphs),
-		}).Info("server status")
-
-		instance.DBPtr.UpdateTime(instance.Id)
-		return http.StatusOK, addRespose{Id: instance.Id,
-			Title: instance.Title, CurrentSentance: instance.CurrentSentance}
 	}
 
+	return instance.UpdateBody(word)
+}
+
+func (instance *story) UpdateBody(word string) (int, addRespose) {
+
+	log.Info("Update to boyd")
+
+	if len(instance.CurrentSentance) == 0 {
+		instance.WordCount = 1
+
+		tmp := make([]string, 1)
+		tmp[0] = word
+		tmp2 := make([]Paragraphs, 1)
+		tmp2[0].Sentences = tmp
+		instance.Body = StoryBody{tmp2}
+		instance.CurrentSentance = word
+
+		//instance.CurrentSentance = word
+	} else if instance.WordCount < MAX_WORDS_IN_SENTENCE {
+		instance.Body.Paragraphs[instance.ParagraphsCount].Sentences[instance.SentenceCount] += " " + word
+		instance.CurrentSentance += " " + word
+		instance.WordCount++
+	} else if instance.WordCount == MAX_WORDS_IN_SENTENCE {
+		// current sentence is full,
+		// move to new sentence
+
+		if instance.SentenceCount < (MAX_SENTENCE_IN_PARA - 1) {
+			// create new sentence,
+			tmp := make([]string, 1)
+			instance.Body.Paragraphs[instance.ParagraphsCount].Sentences = append(instance.Body.Paragraphs[instance.ParagraphsCount].Sentences, tmp...)
+
+			// update sentence count
+			instance.SentenceCount++
+			instance.Body.Paragraphs[instance.ParagraphsCount].Sentences[instance.SentenceCount] = word
+			instance.WordCount = 1
+			instance.CurrentSentance = word
+
+		} else if instance.SentenceCount == (MAX_SENTENCE_IN_PARA - 1) {
+			// current paragraph is full
+			// move to new paragraph
+
+			if instance.ParagraphsCount < (MAX_PARA_IN_STORY - 1) {
+				log.Info("create new paragraph")
+
+				tmp2 := make([]Paragraphs, 1)
+				tmp := make([]string, 1)
+				tmp2[0].Sentences = tmp
+				instance.Body.Paragraphs = append(instance.Body.Paragraphs, tmp2...)
+
+				instance.ParagraphsCount++
+
+				log.Info("para count ", instance.ParagraphsCount)
+				log.Info("para length ", len(instance.Body.Paragraphs))
+
+				instance.SentenceCount = 0
+				instance.Body.Paragraphs[instance.ParagraphsCount].Sentences[instance.SentenceCount] = word
+				instance.WordCount = 1
+				instance.CurrentSentance = word
+			} else if instance.ParagraphsCount == (MAX_PARA_IN_STORY - 1) {
+				log.Info("Creating new story!!")
+				return instance.setTitle(word)
+			}
+		}
+	}
+
+	instance.DBPtr.UpdateBody(*instance)
+	log.WithFields(log.Fields{
+		"id":                               instance.Id,
+		"current sentace word count":       instance.WordCount,
+		"current paragraph sentence count": instance.SentenceCount + 1,
+		"total number of paragraphs":       instance.ParagraphsCount + 1,
+	}).Info("server status")
+	return http.StatusOK, addRespose{Id: instance.Id,
+		Title:           instance.Title,
+		CurrentSentance: instance.CurrentSentance}
 }
 
 func (instance *story) setTitle(word string) (int, addRespose) {
@@ -79,9 +112,11 @@ func (instance *story) setTitle(word string) (int, addRespose) {
 	}
 	instance.Title = word
 	instance.Id = nxtID
-	instance.CurrentParagraph = nil
 	instance.CurrentSentance = ""
-	instance.Paragraphs = nil
+	instance.WordCount, instance.SentenceCount, instance.ParagraphsCount = 0, 0, 0
+	var body StoryBody
+	instance.Body = body
+
 	log.Info("Creating new story!")
 	instance.DBPtr.CreateStory(*instance)
 	return http.StatusCreated, addRespose{Id: instance.Id,

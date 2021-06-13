@@ -5,6 +5,12 @@ import (
 	"net/http"
 )
 
+const (
+	MAX_WORDS_IN_SENTENCE = 15
+	MAX_SENTENCE_IN_PARA  = 10
+	MAX_PARA_IN_STORY     = 7
+)
+
 type addRespose struct {
 	Id              int64  `json:"id"`
 	Title           string `json:"title"`
@@ -16,15 +22,35 @@ type titleStatus struct {
 }
 
 type story struct {
-	Id                int64
-	Title             string
-	CurrentSentance   string
-	CurrentParagraph  []string
-	Paragraphs        [][]string
-	SentanceWordCount int16
-	DBPtr             datastore
+	Id              int64
+	Title           string
+	CurrentSentance string
+	DBPtr           datastore
+	Body            StoryBody
+	WordCount       int16
+	SentenceCount   int16
+	ParagraphsCount int16
 }
 
+type Sentence struct {
+	Words string
+}
+
+type Paragraphs struct {
+	Sentences []string `json:"sentences,omitempty"`
+}
+
+type StoryBody struct {
+	Paragraphs []Paragraphs `json:"paragraphs,omitempty"`
+}
+
+type RespSingleStory struct {
+	Id          int64  `json:"id"`
+	Title       string `json:"title"`
+	CreatedTime string `json:"created_at"`
+	UpdateTime  string `json:"updated_at"`
+	Paragraphs  string `json:"paragraphs"`
+}
 type incomingMsg struct {
 	Word string `json:"word"`
 }
