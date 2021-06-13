@@ -51,6 +51,21 @@ type RespSingleStory struct {
 	UpdateTime  string `json:"updated_at"`
 	Paragraphs  string `json:"paragraphs"`
 }
+
+type MulityStoryResponse struct {
+	Limit   uint64           `json:"limit"`
+	Offset  uint64           `json:"offset"`
+	Count   int              `json:"count"`
+	Results []ResponseResult `json:"results,omitempty"`
+}
+
+type ResponseResult struct {
+	Id          int64  `json:"id"`
+	Title       string `json:"title"`
+	CreatedTime string `json:"created_at"`
+	UpdateTime  string `json:"updated_at"`
+}
+
 type incomingMsg struct {
 	Word string `json:"word"`
 }

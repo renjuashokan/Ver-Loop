@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,11 +14,9 @@ func (instance *story) addWord(word string) (int, addRespose) {
 		return http.StatusBadRequest, addRespose{}
 	}
 
-	log.SetFormatter(&log.TextFormatter{TimestampFormat: "2006-01-02 15:04:05", FullTimestamp: true})
-
 	// set title if it is not set
 	if instance.Title == "" {
-		fmt.Println("title is empty")
+		log.Debug("Creating title")
 		return instance.setTitle(word)
 	} else if len(strings.Fields(instance.Title)) <= 1 {
 		instance.Title = instance.Title + " " + word
@@ -33,7 +30,7 @@ func (instance *story) addWord(word string) (int, addRespose) {
 
 func (instance *story) UpdateBody(word string) (int, addRespose) {
 
-	log.Info("Update to boyd")
+	log.Debug("Updating body")
 
 	if len(instance.CurrentSentance) == 0 {
 		instance.WordCount = 1
@@ -79,9 +76,6 @@ func (instance *story) UpdateBody(word string) (int, addRespose) {
 
 				instance.ParagraphsCount++
 
-				log.Info("para count ", instance.ParagraphsCount)
-				log.Info("para length ", len(instance.Body.Paragraphs))
-
 				instance.SentenceCount = 0
 				instance.Body.Paragraphs[instance.ParagraphsCount].Sentences[instance.SentenceCount] = word
 				instance.WordCount = 1
@@ -99,7 +93,7 @@ func (instance *story) UpdateBody(word string) (int, addRespose) {
 		"current sentace word count":       instance.WordCount,
 		"current paragraph sentence count": instance.SentenceCount + 1,
 		"total number of paragraphs":       instance.ParagraphsCount + 1,
-	}).Info("server status")
+	}).Debug("server status")
 	return http.StatusOK, addRespose{Id: instance.Id,
 		Title:           instance.Title,
 		CurrentSentance: instance.CurrentSentance}

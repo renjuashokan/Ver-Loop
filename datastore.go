@@ -16,7 +16,7 @@ import (
 )
 
 func (instance *datastore) initDatastore() {
-	fmt.Println("initiating datastore")
+	log.Debug("initiating datastore")
 	viper.SetConfigFile("config.yaml")
 	viper.AddConfigPath("./")
 	viper.AutomaticEnv()
@@ -200,4 +200,70 @@ func (instance *datastore) GetStoryById(Id int64) (int, RespSingleStory) {
 	}
 
 	return http.StatusUnprocessableEntity, output
+}
+
+func (instance *datastore) GetStories(limit, offset uint64, sortby, orderby string) (int, MulityStoryResponse) {
+	if instance.psqlDB == nil {
+		instance.connectToDB()
+	}
+	log.Debug("limit = ", limit, " offset = ", offset, " sortby = ", sortby, "order by =", orderby)
+	var queryStmnt string
+	var err error
+	var rows *sql.Rows
+	var output MulityStoryResponse
+
+	sortKey := ""
+	if sortby != "" {
+		sortKey = sortby + " " + orderby
+		log.Debug("Sort key is ", sortKey)
+	}
+
+	if limit != 0 && offset != 0 && sortby != "" {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard ORDER BY $1 LIMIT $2 OFFSET $3`
+		rows, err = instance.psqlDB.Query(queryStmnt, sortKey, limit, offset)
+	} else if limit != 0 && offset != 0 {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard LIMIT $1 OFFSET $2`
+		rows, err = instance.psqlDB.Query(queryStmnt, limit, offset)
+	} else if limit != 0 && sortby != "" {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard ORDER BY $1 LIMIT $2`
+		rows, err = instance.psqlDB.Query(queryStmnt, sortKey, limit)
+	} else if offset != 0 && sortby != "" {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard ORDER BY $1 OFFSET $2`
+		rows, err = instance.psqlDB.Query(queryStmnt, sortKey, offset)
+	} else if limit != 0 {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard LIMIT $1`
+		rows, err = instance.psqlDB.Query(queryStmnt, limit)
+	} else if offset != 0 {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard OFFSET $1`
+		rows, err = instance.psqlDB.Query(queryStmnt, offset)
+	} else if sortby != "" {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard ORDER BY $1`
+		rows, err = instance.psqlDB.Query(queryStmnt, sortKey)
+	} else {
+		queryStmnt = `SELECT id, title, created_at, updated_at FROM storyboard`
+		rows, err = instance.psqlDB.Query(queryStmnt)
+	}
+
+	check(err)
+	for rows.Next() {
+		var id int64
+		var title sql.NullString
+		var created_at, updated_at int64
+		err := rows.Scan(&id, &title, &created_at, &updated_at)
+		check(err)
+		var result ResponseResult
+		result.Id = id
+		if title.Valid {
+			result.Title = title.String
+		}
+		result.CreatedTime = time.Unix(0, created_at*int64(time.Millisecond)).String()
+		result.UpdateTime = time.Unix(0, updated_at*int64(time.Millisecond)).String()
+		output.Results = append(output.Results, result)
+	}
+	output.Count = len(output.Results)
+	output.Limit = limit
+	output.Offset = offset
+	defer rows.Close()
+	log.Debug("Completed GetStories successfully")
+	return http.StatusOK, output
 }

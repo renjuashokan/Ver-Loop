@@ -43,9 +43,9 @@ func setupRoutes(db datastore) {
 		})
 
 		verl.Get("/stories/{id}", func(ctx iris.Context) {
-			fmt.Println("get 1111 whole stories")
+
 			id := ctx.Params().Get("id")
-			fmt.Println(id)
+			log.Info("got request to get story by id", id)
 			i, err := strconv.ParseInt(id, 10, 64)
 			if err != nil {
 				panic(err)
@@ -63,6 +63,37 @@ func setupRoutes(db datastore) {
 
 		verl.Get("/stories/", func(ctx iris.Context) {
 			fmt.Println("get whole stories")
+			var limit, offset uint64 = 0, 0
+			var sortby, orderby string = "", "ASC"
+			var err error
+			if ctx.URLParamExists("limit") {
+				tt := ctx.URLParam("limit")
+				limit, err = strconv.ParseUint(tt, 10, 64)
+				if err != nil {
+					panic(err)
+				}
+				log.Info("limit is ", limit)
+			}
+			if ctx.URLParamExists("offset") {
+				tt := ctx.URLParam("offset")
+				offset, err = strconv.ParseUint(tt, 10, 64)
+				if err != nil {
+					panic(err)
+				}
+				log.Info("offset is ", offset)
+			}
+			if ctx.URLParamExists("sort") {
+				sortby = ctx.URLParam("sort")
+				log.Info("sortby is ", sortby)
+			}
+			if ctx.URLParamExists("order") {
+				orderby = ctx.URLParam("order")
+				log.Info("orderby is ", orderby)
+			}
+
+			status, resp := db.GetStories(limit, offset, sortby, orderby)
+			ctx.StatusCode(status)
+			ctx.JSON(resp)
 
 		})
 
