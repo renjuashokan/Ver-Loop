@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -44,10 +45,17 @@ func (instance *datastore) connectToDB() {
 		return
 	}
 
+	dbIP := os.Getenv("VERLOOP_DSN")
+
+	if dbIP == "" {
+		dbIP = viper.GetString("Database.IP")
+		log.Info("$VERLOOP_DSN is empty, using value from config.yaml file")
+	}
+
 	connstring := fmt.Sprintf(
 		"host=%s port=%d user=%s "+
 			"password=%s dbname=%s sslmode=disable",
-		viper.GetString("Database.IP"),
+		dbIP,
 		viper.GetInt("Database.Port"),
 		viper.GetString("Database.UserID"),
 		viper.GetString("Database.Passwd"),
